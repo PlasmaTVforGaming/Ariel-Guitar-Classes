@@ -163,6 +163,12 @@
             background: #0f0a07;
             color: var(--text-light);
             font: inherit;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .booking-input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
         }
         .booking-input:focus { outline: 2px solid var(--accent-gold); }
         .booking-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -387,7 +393,7 @@
 
         <label class="field-label" for="lessonDate">Choose a lesson date (U.S. Central Time)</label>
         <div class="booking-row">
-            <input class="booking-input" id="lessonDate" type="date">
+            <input class="booking-input" id="lessonDate" type="date" min="">
             <button class="btn" id="loadTimesButton" type="button" style="margin-top:0;">Show Available Times</button>
         </div>
 
@@ -529,10 +535,13 @@
         document.getElementById("selectedPrice").textContent = selected.price;
         document.getElementById("studentName").value = "";
         document.getElementById("studentEmail").value = "";
-        dateInput.value = getCentralDateString();
+        
+        const todayStr = getCentralDateString();
+        dateInput.min = todayStr;
+        dateInput.value = todayStr;
 
         timesContainer.innerHTML = "";
-        availabilityMessage.textContent = "Choose a date and show available times.";
+        availabilityMessage.textContent = "Tap the date box above to pick a date, then tap 'Show Available Times'.";
         paymentMessage.textContent = `Select ${selected.count} lesson time${selected.count === 1 ? "" : "s"} to continue.`;
         renderSelectedSlots();
         updatePayButton();
@@ -687,7 +696,7 @@
         const studentEmail = document.getElementById("studentEmail").value.trim();
         const studentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-        if (studentName.length < 2) {
+        if (studentName.name < 2) {
             paymentMessage.textContent = "Please enter your name.";
             return;
         }
