@@ -137,12 +137,12 @@
             </div>
             <div class="row" id="hoursRow" style="display: none;">
                 <div class="input-group">
-                    <label for="startHour">Start Hour (0 - 23)</label>
+                    <label for="startHour">Start Hour (0 - 22)</label>
                     <input type="number" id="startHour" min="0" max="22" value="17">
                 </div>
                 <div class="input-group">
-                    <label for="endHour">End Hour (1 - 24)</label>
-                    <input type="number" id="endHour" min="1" max="24" value="21">
+                    <label for="endHour">End Hour (1 - 23)</label>
+                    <input type="number" id="endHour" min="1" max="23" value="21">
                 </div>
             </div>
             <button class="btn" type="submit">Block Date / Hours</button>
@@ -299,8 +299,9 @@
         const date = document.getElementById("blockDate").value;
         const blockType = document.getElementById("blockType").value;
 
+        // Valid schema range: start_hour 0-22, end_hour 1-23
         let startHour = 0;
-        let endHour = 24;
+        let endHour = 23;
 
         if (blockType === "custom") {
             startHour = parseInt(document.getElementById("startHour").value, 10);
@@ -326,11 +327,15 @@
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Failed to save");
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to save rule.");
+            }
 
             msg.textContent = "Rule saved successfully!";
+            document.getElementById("ruleForm").reset();
             loadDashboardData();
         } catch (err) {
+            msg.style.color = "var(--danger-red)";
             msg.textContent = err.message;
         }
     }
@@ -344,11 +349,14 @@
                 headers: { "X-Admin-Secret": adminSecret }
             });
 
-            if (res.ok) {
-                loadDashboardData();
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to delete");
             }
+
+            loadDashboardData();
         } catch (err) {
-            console.error("Failed to delete rule:", err);
+            alert(err.message);
         }
     }
 
