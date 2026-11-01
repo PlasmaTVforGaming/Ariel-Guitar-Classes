@@ -420,24 +420,24 @@
     </dialog>
 
     <section id="schedule" style="margin: 60px 0;">
-    <h2>Schedule & Book</h2>
-    <div class="checkout-box">
-        <p><strong>Availability:</strong></p>
-        
-        <!-- Dynamic teaching hours container -->
-        <div id="dynamicTeachingHours">
-            <p style="color: var(--text-muted, #a6988d);">Loading available hours...</p>
-        </div>
+        <h2>Schedule & Book</h2>
+        <div class="checkout-box">
+            <p><strong>Availability:</strong></p>
+            
+            <!-- Dynamic teaching hours container -->
+            <div id="dynamicTeachingHours">
+                <p style="color: var(--text-muted, #a6988d);">Loading available hours...</p>
+            </div>
 
-        <p style="margin-top: 12px;">
-            <span class="muted">Schedule shown in U.S. Central Time. Appointment choices are converted to each student's local time. Bookings must be made at least 24 hours in advance.</span>
-        </p>
-        <p>
-            Select a lesson package above to choose your appointment dates and times.
-            A temporary 15-minute hold begins when you continue to PayPal.
-        </p>
-    </div>
-</section>
+            <p style="margin-top: 12px;">
+                <span class="muted">Schedule shown in U.S. Central Time. Appointment choices are converted to each student's local time. Bookings must be made at least 24 hours in advance.</span>
+            </p>
+            <p>
+                Select a lesson package above to choose your appointment dates and times.
+                A temporary 15-minute hold begins when you continue to PayPal.
+            </p>
+        </div>
+    </section>
 
     <section id="contact" class="contact">
         <h2>Questions or Inquiries?</h2>
@@ -747,74 +747,66 @@
 
             paymentMessage.textContent = "Your lesson times are held for 15 minutes. Redirecting to PayPal…";
             window.location.assign(data.paypalUrl);
-       <script>
-// Load weekly hours dynamically from Worker
-(async function loadDynamicHours() {
-    const API_URL = "https://raspy-sunset-9468.arielguitarclasses.workers.dev";
-    const container = document.getElementById("dynamicTeachingHours");
-    if (!container) return;
+        } catch (error) {
+            paymentMessage.textContent = error.message || "An error occurred while creating your reservation. Please try again.";
+            payButton.disabled = false;
+            loadTimesButton.disabled = false;
+        }
+    }
 
-    try {
-        const res = await fetch(`${API_URL}/public-hours`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        
-        const data = await res.json();
-        if (!data.success || !data.hours || data.hours.length === 0) {
-            container.innerHTML = "<p>Flexible scheduling available upon request.</p>";
-            return;
+    // Load weekly hours dynamically from Worker
+    async function loadDynamicHours() {
+        const container = document.getElementById("dynamicTeachingHours");
+        if (!container) return;
+
+        try {
+            const res = await fetch(`${BOOKING_API}/public-hours`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            
+            const data = await res.json();
+            if (!data.success || !data.hours || data.hours.length === 0) {
+                container.innerHTML = "<p>Flexible scheduling available upon request.</p>";
+                return;
+            }
+
+            const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            
+            const formatTime = (hour) => {
+                if (hour === 0 || hour === 24) return "12:00 AM";
+                if (hour === 12) return "12:00 PM";
+                return hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
+            };
+
+            const lines = data.hours.map(h => {
+                return `<strong>${weekdays[h.weekday]}:</strong> ${formatTime(h.start_hour)} – ${formatTime(h.end_hour)}`;
+            });
+
+            container.innerHTML = `<p style="margin: 0; line-height: 1.6;">` + lines.join("<br>") + `</p>`;
+        } catch (err) {
+            console.error("Failed to load hours:", err);
+            container.innerHTML = "<p>Select a date on the calendar to view available lesson slots.</p>";
+        }
+    }
+
+    // Page Event Listeners Initialization
+    document.addEventListener("DOMContentLoaded", function() {
+        const yearElem = document.getElementById("year");
+        if (yearElem) yearElem.textContent = new Date().getFullYear();
+
+        if (loadTimesButton) {
+            loadTimesButton.addEventListener("click", loadAvailableTimes);
+        }
+        if (payButton) {
+            payButton.addEventListener("click", continueToPayPal);
         }
 
-        const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        
-        const formatTime = (hour) => {
-            if (hour === 0 || hour === 24) return "12:00 AM";
-            if (hour === 12) return "12:00 PM";
-            return hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
-        };
+        const nameInput = document.getElementById("studentName");
+        const emailInput = document.getElementById("studentEmail");
+        if (nameInput) nameInput.addEventListener("input", updatePayButton);
+        if (emailInput) emailInput.addEventListener("input", updatePayButton);
 
-        const lines = data.hours.map(h => {
-            return `<strong>${weekdays[h.weekday]}:</strong> ${formatTime(h.start_hour)} – ${formatTime(h.end_hour)}`;
-        });
-
-        container.innerHTML = `<p style="margin: 0; line-height: 1.6;">` + lines.join("<br>") + `</p>`;
-    } catch (err) {
-        console.error("Failed to load hours:", err);
-        container.innerHTML = "<p>Select a date on the calendar to view available lesson slots.</p>";
-    }
-})();
-
-// Page Event Listeners
-document.addEventListener("DOMContentLoaded", function() {
-    const yearElem = document.getElementById("year");
-    if (yearElem) yearElem.textContent = new Date().getFullYear();
-
-    const loadBtn = document.getElementById("loadTimesButton");
-    if (loadBtn && typeof loadAvailableTimes === "function") {
-        loadBtn.addEventListener("click", loadAvailableTimes);
-    }
-
-    const payBtn = document.getElementById("payButton");
-    if (payBtn && typeof continueToPayPal === "function") {
-        payBtn.addEventListener("click", continueToPayPal);
-    }
-
-    const sName = document.getElementById("studentName");
-    if (sName && typeof updatePayButton === "function") {
-        sName.addEventListener("input", updatePayButton);
-    }
-
-    const sEmail = document.getElementById("studentEmail");
-    if (sEmail && typeof updatePayButton === "function") {
-        sEmail.addEventListener("input", updatePayButton);
-    }
-
-    const dlg = document.getElementById("dialog");
-    if (dlg) {
-        dlg.addEventListener("click", function(event) {
-            if (event.target === this && typeof this.close === "function") this.close();
-        });
-    }
-});
+        loadDynamicHours();
+    });
 </script>
 </body>
 </html>
