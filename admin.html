@@ -131,37 +131,54 @@
         <button class="btn" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);" onclick="logout()">Logout</button>
     </header>
 
+    <!-- Rule Management Card -->
     <div class="card">
-        <h2>Add Custom Unavailability / Block Date</h2>
+        <h2>Manage Availability Rules</h2>
         <form id="ruleForm" onsubmit="saveRule(event)">
             <div class="row">
                 <div class="input-group">
-                    <label for="blockDate">Date to Block</label>
-                    <input type="date" id="blockDate" required>
-                </div>
-                <div class="input-group">
-                    <label for="blockType">Block Window</label>
-                    <select id="blockType" onchange="toggleHours()">
-                        <option value="fullday">Entire Day (All Hours)</option>
-                        <option value="custom">Specific Hours (Central Time)</option>
+                    <label for="ruleMode">Rule Type</label>
+                    <select id="ruleMode" onchange="toggleRuleMode()">
+                        <option value="weekly">Set Weekly Recurring Hours (Available)</option>
+                        <option value="date">Block Specific Date / Hours (Unavailable)</option>
                     </select>
                 </div>
+                <div class="input-group" id="weekdayGroup">
+                    <label for="ruleWeekday">Day of Week</label>
+                    <select id="ruleWeekday">
+                        <option value="1">Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                        <option value="0">Sunday</option>
+                    </select>
+                </div>
+                <div class="input-group" id="dateGroup" style="display: none;">
+                    <label for="blockDate">Date to Block</label>
+                    <input type="date" id="blockDate">
+                </div>
             </div>
-            <div class="row" id="hoursRow" style="display: none;">
+
+            <div class="row">
                 <div class="input-group">
                     <label for="startHour">Start Hour (0 - 22)</label>
                     <input type="number" id="startHour" min="0" max="22" value="17">
+                    <small style="color: var(--text-muted);">e.g., 17 = 5:00 PM, 8 = 8:00 AM</small>
                 </div>
                 <div class="input-group">
                     <label for="endHour">End Hour (1 - 23)</label>
-                    <input type="number" id="endHour" min="1" max="23" value="21">
+                    <input type="number" id="endHour" min="1" max="23" value="22">
+                    <small style="color: var(--text-muted);">e.g., 22 = 10:00 PM, 21 = 9:00 PM</small>
                 </div>
             </div>
-            <button class="btn" type="submit">Block Date / Hours</button>
+            <button class="btn" type="submit">Save Availability Rule</button>
             <p id="ruleMsg" class="status-msg"></p>
         </form>
     </div>
 
+    <!-- Bookings List -->
     <div class="card">
         <h2>Upcoming Bookings & Holds</h2>
         <div style="overflow-x: auto;">
@@ -183,6 +200,7 @@
         </div>
     </div>
 
+    <!-- Active Rules -->
     <div class="card">
         <h2>Active Custom Rules & Overrides</h2>
         <div style="overflow-x: auto;">
@@ -233,9 +251,24 @@
         location.reload();
     }
 
-    function toggleHours() {
-        const type = document.getElementById("blockType").value;
-        document.getElementById("hoursRow").style.display = type === "custom" ? "grid" : "none";
+    function toggleRuleMode() {
+        const mode = document.getElementById("ruleMode").value;
+        const weekdayGroup = document.getElementById("weekdayGroup");
+        const dateGroup = document.getElementById("dateGroup");
+        const startInput = document.getElementById("startHour");
+        const endInput = document.getElementById("endHour");
+
+        if (mode === "weekly") {
+            weekdayGroup.style.display = "block";
+            dateGroup.style.display = "none";
+            startInput.value = "17";
+            endInput.value = "22"; // default to 10pm if expanding
+        } else {
+            weekdayGroup.style.display = "none";
+            dateGroup.style.display = "block";
+            startInput.value = "0";
+            endInput.value = "23";
+        }
     }
 
     async function loadDashboardData() {
@@ -313,15 +346,20 @@
     async function saveRule(e) {
         e.preventDefault();
         const msg = document.getElementById("ruleMsg");
-        const date = document.getElementById("blockDate").value;
-        const blockType = document.getElementById("blockType").value;
+        const ruleType = document.getElementById("ruleMode").value;
+        const startHour = parseInt(document.getElementById("startHour").value, 10);
+        const endHour = parseInt(document.getElementById("endHour").value, 10);
 
-        let startHour = 0;
-        let endHour = 23;
+        let date = null;
+        let weekday = null;
+        let action = "unavailable";
 
-        if (blockType === "custom") {
-            startHour = parseInt(document.getElementById("startHour").value, 10);
-            endHour = parseInt(document.getElementById("endHour").value, 10);
+        if (ruleType === "weekly") {
+            weekday = parseInt(document.getElementById("ruleWeekday").value, 10);
+            action = "available";
+        } else {
+            date = document.getElementById("blockDate").value;
+            action = "unavailable";
         }
 
         msg.textContent = "Saving rule...";
@@ -334,11 +372,12 @@
                     "X-Admin-Secret": adminSecret
                 },
                 body: JSON.stringify({
-                    ruleType: "date",
+                    ruleType,
                     date,
+                    weekday,
                     startHour,
                     endHour,
-                    action: "unavailable"
+                    action
                 })
             });
 
@@ -349,6 +388,7 @@
 
             msg.textContent = "Rule saved successfully!";
             document.getElementById("ruleForm").reset();
+            toggleRuleMode();
             loadDashboardData();
         } catch (err) {
             msg.style.color = "var(--danger-red)";
