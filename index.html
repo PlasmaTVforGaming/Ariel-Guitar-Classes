@@ -373,8 +373,8 @@
         <div class="payment-amount" id="selectedPrice"></div>
 
         <div class="notice">
-            Choose your lesson dates and times below. The schedule is based on
-            U.S. Central Time; available times are also displayed in your local time zone.
+            Choose your lesson dates and times below. Bookings require at least 24 hours advance notice.
+            Schedule is shown in U.S. Central Time; available times are also displayed in your local time zone.
         </div>
 
         <div class="booking-row">
@@ -426,7 +426,7 @@
             <p>
                 Monday – Friday: 5:00 PM – 9:00 PM<br>
                 Saturday – Sunday: 8:00 AM – 9:00 PM<br>
-                <span class="muted">Schedule shown in U.S. Central Time. Appointment choices are converted to each student's local time.</span>
+                <span class="muted">Schedule shown in U.S. Central Time. Appointment choices are converted to each student's local time. Bookings must be made at least 24 hours in advance.</span>
             </p>
             <p>
                 Select a lesson package above to choose your appointment dates and times.
@@ -484,13 +484,14 @@
     const payButton = document.getElementById("payButton");
     const loadTimesButton = document.getElementById("loadTimesButton");
 
-    function getCentralDateString() {
+    function getTomorrowCentralDateString() {
+        const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
         const parts = new Intl.DateTimeFormat("en-CA", {
             timeZone: "America/Chicago",
             year: "numeric",
             month: "2-digit",
             day: "2-digit"
-        }).formatToParts(new Date());
+        }).formatToParts(tomorrow);
         const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
         return `${values.year}-${values.month}-${values.day}`;
     }
@@ -535,12 +536,12 @@
         document.getElementById("studentName").value = "";
         document.getElementById("studentEmail").value = "";
         
-        const todayStr = getCentralDateString();
-        dateInput.min = todayStr;
-        dateInput.value = todayStr;
+        const tomorrowStr = getTomorrowCentralDateString();
+        dateInput.min = tomorrowStr;
+        dateInput.value = tomorrowStr;
 
         timesContainer.innerHTML = "";
-        availabilityMessage.textContent = "Tap the date box above to pick a date, then tap 'Show Available Times'.";
+        availabilityMessage.textContent = "Choose a date (at least 24 hours in advance) and show available times.";
         paymentMessage.textContent = `Select ${selected.count} lesson time${selected.count === 1 ? "" : "s"} to continue.`;
         renderSelectedSlots();
         updatePayButton();
@@ -695,7 +696,7 @@
         const studentEmail = document.getElementById("studentEmail").value.trim();
         const studentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-        if (studentName.name < 2) {
+        if (studentName.length < 2) {
             paymentMessage.textContent = "Please enter your name.";
             return;
         }
