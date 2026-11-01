@@ -420,20 +420,24 @@
     </dialog>
 
     <section id="schedule" style="margin: 60px 0;">
-        <h2>Schedule & Book</h2>
-        <div class="checkout-box">
-            <p><strong>Availability:</strong></p>
-            <p>
-                Monday – Friday: 5:00 PM – 9:00 PM<br>
-                Saturday – Sunday: 8:00 AM – 9:00 PM<br>
-                <span class="muted">Schedule shown in U.S. Central Time. Appointment choices are converted to each student's local time. Bookings must be made at least 24 hours in advance.</span>
-            </p>
-            <p>
-                Select a lesson package above to choose your appointment dates and times.
-                A temporary 15-minute hold begins when you continue to PayPal.
-            </p>
+    <h2>Schedule & Book</h2>
+    <div class="checkout-box">
+        <p><strong>Availability:</strong></p>
+        
+        <!-- Dynamic teaching hours container -->
+        <div id="dynamicTeachingHours">
+            <p style="color: var(--text-muted, #a6988d);">Loading available hours...</p>
         </div>
-    </section>
+
+        <p style="margin-top: 12px;">
+            <span class="muted">Schedule shown in U.S. Central Time. Appointment choices are converted to each student's local time. Bookings must be made at least 24 hours in advance.</span>
+        </p>
+        <p>
+            Select a lesson package above to choose your appointment dates and times.
+            A temporary 15-minute hold begins when you continue to PayPal.
+        </p>
+    </div>
+</section>
 
     <section id="contact" class="contact">
         <h2>Questions or Inquiries?</h2>
@@ -751,6 +755,43 @@
         }
     }
 
+<script>
+async function loadDynamicHours() {
+    const API_URL = "https://raspy-sunset-9468.arielguitarclasses.workers.dev";
+    const container = document.getElementById("dynamicTeachingHours");
+    if (!container) return;
+
+    try {
+        const res = await fetch(`${API_URL}/public-hours`);
+        const data = await res.json();
+        
+        if (!data.success || !data.hours || data.hours.length === 0) {
+            container.innerHTML = "<p>Flexible scheduling available upon request.</p>";
+            return;
+        }
+
+        const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        
+        const formatTime = (hour) => {
+            if (hour === 0 || hour === 24) return "12:00 AM";
+            if (hour === 12) return "12:00 PM";
+            return hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
+        };
+
+        const lines = data.hours.map(h => {
+            return `${weekdays[h.weekday]}: ${formatTime(h.start_hour)} – ${formatTime(h.end_hour)}`;
+        });
+
+        container.innerHTML = `<p style="margin: 0; line-height: 1.6;">` + lines.join("<br>") + `</p>`;
+    } catch (err) {
+        console.error("Failed to load hours:", err);
+        container.innerHTML = "<p>Select a date on the calendar to view available lesson slots.</p>";
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    loadDynamicHours();
+
     document.getElementById("year").textContent = new Date().getFullYear();
     loadTimesButton.addEventListener("click", loadAvailableTimes);
     payButton.addEventListener("click", continueToPayPal);
@@ -761,6 +802,7 @@
     dialog.addEventListener("click", function(event) {
         if (event.target === this) this.close();
     });
+});
 </script>
 </body>
 </html>
