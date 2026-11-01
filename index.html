@@ -747,16 +747,8 @@
 
             paymentMessage.textContent = "Your lesson times are held for 15 minutes. Redirecting to PayPal…";
             window.location.assign(data.paypalUrl);
-        } catch (error) {
-            paymentMessage.textContent = error.message || "Something went wrong. Please try again.";
-            payButton.disabled = false;
-            loadTimesButton.disabled = false;
-            updatePayButton();
-        }
-    }
-
-<script>
-// Independent fetch to guarantee execution
+       <script>
+// Load weekly hours dynamically from Worker
 (async function loadDynamicHours() {
     const API_URL = "https://raspy-sunset-9468.arielguitarclasses.workers.dev";
     const container = document.getElementById("dynamicTeachingHours");
@@ -791,17 +783,17 @@
     }
 })();
 
-// Main Event Listeners
+// Page Event Listeners
 document.addEventListener("DOMContentLoaded", function() {
     const yearElem = document.getElementById("year");
     if (yearElem) yearElem.textContent = new Date().getFullYear();
 
-    const loadBtn = document.getElementById("loadTimesButton") || (typeof loadTimesButton !== "undefined" ? loadTimesButton : null);
+    const loadBtn = document.getElementById("loadTimesButton");
     if (loadBtn && typeof loadAvailableTimes === "function") {
         loadBtn.addEventListener("click", loadAvailableTimes);
     }
 
-    const payBtn = document.getElementById("payButton") || (typeof payButton !== "undefined" ? payButton : null);
+    const payBtn = document.getElementById("payButton");
     if (payBtn && typeof continueToPayPal === "function") {
         payBtn.addEventListener("click", continueToPayPal);
     }
@@ -816,7 +808,7 @@ document.addEventListener("DOMContentLoaded", function() {
         sEmail.addEventListener("input", updatePayButton);
     }
 
-    const dlg = document.getElementById("dialog") || (typeof dialog !== "undefined" ? dialog : null);
+    const dlg = document.getElementById("dialog");
     if (dlg) {
         dlg.addEventListener("click", function(event) {
             if (event.target === this && typeof this.close === "function") this.close();
