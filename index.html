@@ -756,15 +756,17 @@
     }
 
 <script>
-async function loadDynamicHours() {
+// Independent fetch to guarantee execution
+(async function loadDynamicHours() {
     const API_URL = "https://raspy-sunset-9468.arielguitarclasses.workers.dev";
     const container = document.getElementById("dynamicTeachingHours");
     if (!container) return;
 
     try {
         const res = await fetch(`${API_URL}/public-hours`);
-        const data = await res.json();
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
+        const data = await res.json();
         if (!data.success || !data.hours || data.hours.length === 0) {
             container.innerHTML = "<p>Flexible scheduling available upon request.</p>";
             return;
@@ -779,7 +781,7 @@ async function loadDynamicHours() {
         };
 
         const lines = data.hours.map(h => {
-            return `${weekdays[h.weekday]}: ${formatTime(h.start_hour)} – ${formatTime(h.end_hour)}`;
+            return `<strong>${weekdays[h.weekday]}:</strong> ${formatTime(h.start_hour)} – ${formatTime(h.end_hour)}`;
         });
 
         container.innerHTML = `<p style="margin: 0; line-height: 1.6;">` + lines.join("<br>") + `</p>`;
@@ -787,21 +789,39 @@ async function loadDynamicHours() {
         console.error("Failed to load hours:", err);
         container.innerHTML = "<p>Select a date on the calendar to view available lesson slots.</p>";
     }
-}
+})();
 
+// Main Event Listeners
 document.addEventListener("DOMContentLoaded", function() {
-    loadDynamicHours();
+    const yearElem = document.getElementById("year");
+    if (yearElem) yearElem.textContent = new Date().getFullYear();
 
-    document.getElementById("year").textContent = new Date().getFullYear();
-    loadTimesButton.addEventListener("click", loadAvailableTimes);
-    payButton.addEventListener("click", continueToPayPal);
+    const loadBtn = document.getElementById("loadTimesButton") || (typeof loadTimesButton !== "undefined" ? loadTimesButton : null);
+    if (loadBtn && typeof loadAvailableTimes === "function") {
+        loadBtn.addEventListener("click", loadAvailableTimes);
+    }
 
-    document.getElementById("studentName").addEventListener("input", updatePayButton);
-    document.getElementById("studentEmail").addEventListener("input", updatePayButton);
+    const payBtn = document.getElementById("payButton") || (typeof payButton !== "undefined" ? payButton : null);
+    if (payBtn && typeof continueToPayPal === "function") {
+        payBtn.addEventListener("click", continueToPayPal);
+    }
 
-    dialog.addEventListener("click", function(event) {
-        if (event.target === this) this.close();
-    });
+    const sName = document.getElementById("studentName");
+    if (sName && typeof updatePayButton === "function") {
+        sName.addEventListener("input", updatePayButton);
+    }
+
+    const sEmail = document.getElementById("studentEmail");
+    if (sEmail && typeof updatePayButton === "function") {
+        sEmail.addEventListener("input", updatePayButton);
+    }
+
+    const dlg = document.getElementById("dialog") || (typeof dialog !== "undefined" ? dialog : null);
+    if (dlg) {
+        dlg.addEventListener("click", function(event) {
+            if (event.target === this && typeof this.close === "function") this.close();
+        });
+    }
 });
 </script>
 </body>
